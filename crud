@@ -3,3 +3,117 @@ https://github.com/cloud-with-django/Django-CRM-mastery-app-Project-1-YT/tree/ma
 https://github.com/Kamakshaiah/django-stuff/tree/main/django-crud/crud/crud
 
 https://github.com/divanov11/photo-album-app.git
+
+#pip install flask flask_mysqldb
+'''Set up a MySQL database on your local machine and create the necessary tables (sleep_entries in this case). Make sure to replace 
+'your_mysql_username' and 'your_mysql_password' with
+ your actual MySQL credentials in app.py.'''
+
+'''reate a new directory for your Flask application and save app.py inside it.
+ Also, create a templates directory inside the Flask application directory and save index.html in it.'''
+from flask import Flask, render_template, request, redirect
+from flask_mysqldb import MySQL
+from datetime import datetime
+
+app = Flask(__name__)
+
+# MySQL configurations
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'password'
+app.config['MYSQL_DB'] = 'sleep_tracker_db'
+
+mysql = MySQL(app)
+
+@app.route('/')
+def index():
+    #return render_template('index.html')
+
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM sleep_entries")
+    entries = cur.fetchall()
+    cur.close()
+    return render_template('index.html', entries=entries)
+
+@app.route('/add_entry', methods=['POST'])
+def add_entry():
+    if request.method == 'POST':
+        start_time = request.form['start_time']
+        wakeup_time = request.form['wakeup_time']
+        sleep_duration = calculate_sleep_duration(start_time, wakeup_time)
+        
+        cur = mysql.connection.cursor()
+        cur.execute("INSERT INTO sleep_entries (start_time, wakeup_time, sleep_duration) VALUES (%s, %s, %s)", (start_time, wakeup_time, sleep_duration))
+        mysql.connection.commit()
+        cur.close()
+        
+        return redirect('/')
+
+@app.route('/get_entries')
+def get_entries():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM sleep_entries")
+    entries = cur.fetchall()
+    cur.close()
+    return render_template('index.html', entries=entries)
+
+def calculate_sleep_duration(start_time, wakeup_time):
+    start_time = datetime.strptime(start_time, '%H:%M')
+    wakeup_time = datetime.strptime(wakeup_time, '%H:%M')
+    duration = wakeup_time - start_time
+    return duration.total_seconds() / 3600  # Convert to hours
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+#index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Tracker</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Sleep Tracker</h1>
+        <form action="/add_entry" method="post">
+            <div class="form-group">
+                <label for="start_time">Start Time:</label>
+                <input type="time" class="form-control" id="start_time" name="start_time" required>
+            </div>
+            <div class="form-group">
+                <label for="wakeup_time">Wake-up Time:</label>
+                <input type="time" class="form-control" id="wakeup_time" name="wakeup_time" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Entry</button>
+        </form>
+        <br>
+        <h2>Sleep Entries</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Start Time</th>
+                    <th>Wake-up Time</th>
+                    <th>Duration (hours)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry[0] }}</td>
+                    <td>{{ entry[1] }}</td>
+                    <td>{{ entry[2] }}</td>
+                    <td>{{ entry[3] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
