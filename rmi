@@ -1,0 +1,78 @@
+Define Remote Interface
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface RemoteDictionary extends Remote {
+    int count() throws RemoteException;
+    void insert(String word, String content) throws RemoteException;
+    void delete(String word) throws RemoteException;
+    String lookup(String word) throws RemoteException;
+}
+
+Implement Remote Interface
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+
+public class RemoteDictionaryImpl extends UnicastRemoteObject implements RemoteDictionary {
+    private HashMap<String, String> dictionary;
+
+    public RemoteDictionaryImpl() throws RemoteException {
+        super();
+        dictionary = new HashMap<>();
+    }
+
+    public int count() throws RemoteException {
+        return dictionary.size();
+    }
+
+    public void insert(String word, String content) throws RemoteException {
+        dictionary.put(word, content);
+    }
+
+    public void delete(String word) throws RemoteException {
+        dictionary.remove(word);
+    }
+
+    public String lookup(String word) throws RemoteException {
+        return dictionary.get(word);
+    }
+}
+
+Create RMI Server
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class RemoteDictionaryServer {
+    public static void main(String[] args) {
+        try {
+            RemoteDictionary dictionary = new RemoteDictionaryImpl();
+            LocateRegistry.createRegistry(1099);
+            Naming.rebind("RemoteDictionary", dictionary);
+            System.out.println("Remote Dictionary Server is running...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+Create RMI Client
+
+import java.rmi.Naming;
+
+public class RemoteDictionaryClient {
+    public static void main(String[] args) {
+        try {
+            RemoteDictionary dictionary = (RemoteDictionary) Naming.lookup("rmi://localhost/RemoteDictionary");
+
+            // Example Usage
+            dictionary.insert("Hello", "Greetings!");
+            System.out.println("Word count: " + dictionary.count());
+            System.out.println("Lookup 'Hello': " + dictionary.lookup("Hello"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
