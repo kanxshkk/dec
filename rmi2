@@ -1,0 +1,341 @@
+Remote method invocation 
+
+The RMI (Remote Method Invocation) is an API that provides a mechanism to create distributed  application in java.This allows the invocation of methods on Remote objects in the server. 
+Steps in RMI 
+1)Creation of remote interface 
+import java.rmi.*; 
+public interface Adder extends Remote{ 
+ public int add(int x,int y)throws RemoteException; 
+} 
+2) Provide the implementation of the remote interface 
+package com.company; 
+import java.rmi.*; 
+import java.rmi.server.*; 
+public class AdderRemote extends UnicastRemoteObject implements Adder{  AdderRemote()throws RemoteException{ 
+ super(); 
+ } 
+ public int add(int x,int y){return x+y;} 
+} 
+3) Create the RMIClient 
+package com.company; 
+import java.rmi.*; 
+public class RMIClient{ 
+ public static void main(String args[]){ 
+ try{ 
+ Adder stub=(Adder)Naming.lookup("rmi://localhost:5000/add"); 
+ System.out.println(stub.add(34,4)); 
+ }catch(Exception e){} 
+ } 
+} 
+4) Create the RMIServer 
+package com.company; 
+import java.rmi.*;
+import java.rmi.registry.*; 
+public class RMIServer{ 
+ public static void main(String args[]){ 
+ try{ 
+ Adder stub=new AdderRemote(); 
+ Registry rgsty = LocateRegistry.createRegistry(5000); 
+ Naming.rebind("rmi://localhost:5000/add",stub); 
+ }catch(Exception e){System.out.println(e);} 
+ } 
+} 
+Problem Statement 
+1.Consider an application that implements a remote dictionary. The dictionary offers four  operations: count to return the word count, insert to insert a word and its content, delete to  delete a word, and lookup to search for a word and return the content of the word. 
+Interface.java
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+import java.util.Map;
+
+interface DictionaryInterface extends Remote {
+   int count() throws RemoteException;
+   void insert(String word, String content) throws RemoteException;
+   void delete(String word) throws RemoteException;
+   String lookup(String word) throws RemoteException;
+}
+
+class Dictionary extends UnicastRemoteObject implements DictionaryInterface {
+   private final Map<String, String> dictionary;
+   public Dictionary() throws RemoteException {
+       dictionary = new HashMap<>();
+   }
+   @Override
+   public int count() throws RemoteException {
+       return dictionary.size();
+   }
+   @Override
+   public void insert(String word, String content) throws RemoteException {
+       dictionary.put(word, content);
+   }
+   @Override
+   public void delete(String word) throws RemoteException {
+       dictionary.remove(word);
+   }
+   @Override
+   public String lookup(String word) throws RemoteException {
+       return dictionary.get(word);
+   }
+}
+
+Client.java
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+
+class DictionaryClient {
+   public static void main(String[] args) {
+       try {
+           DictionaryInterface dictionary = (DictionaryInterface) Naming.lookup("rmi://localhost:1099/DictionaryService");
+           dictionary.insert("apple", "A fruit with red or yellow edible skin and a core containing seeds.");
+           dictionary.insert("banana", "An elongated curved fruit with a yellow or reddish skin.");
+           dictionary.insert("orange", "A round citrus fruit with a tough bright reddish-yellow rind.");
+           int wordCount = dictionary.count();
+           System.out.println("Word Count: " + wordCount);
+           String appleContent = dictionary.lookup("apple");
+           System.out.println("Definition of 'apple': " + appleContent);
+           dictionary.delete("banana");
+           String bananaContent = dictionary.lookup("banana");
+           System.out.println("Definition of 'banana': " + bananaContent);
+       } catch (RemoteException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
+}
+
+Server.java
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+
+class DictionaryServer {
+   public static void main(String[] args) {
+       try {
+           Dictionary dictionary = new Dictionary();
+           LocateRegistry.createRegistry(1099);
+           Naming.rebind("DictionaryService", dictionary);
+           System.out.println("Dictionary service is running...");
+       } catch (RemoteException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
+}
+
+2. Design a calculator using UI components. The calculator application logic should be  implemented through RMI program and test the output.  
+Interface.java
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+interface CalculatorInterface extends Remote {
+   int add(int a, int b) throws RemoteException;
+   int subtract(int a, int b) throws RemoteException;
+   int multiply(int a, int b) throws RemoteException;
+   double divide(int a, int b) throws RemoteException;
+}
+
+class Calculator extends UnicastRemoteObject implements CalculatorInterface {
+   public Calculator() throws RemoteException {
+       // Required empty constructor
+   }
+   @Override
+   public int add(int a, int b) throws RemoteException {
+       return a + b;
+   }
+   @Override
+   public int subtract(int a, int b) throws RemoteException {
+       return a - b;
+   }
+   @Override
+   public int multiply(int a, int b) throws RemoteException {
+       return a * b;
+   }
+   @Override
+   public double divide(int a, int b) throws RemoteException {
+       if (b == 0) {
+           throw new IllegalArgumentException("Cannot divide by zero");
+       }
+       return (double) a / b;
+   }
+}
+
+Client.java
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+
+class CalculatorClient {
+   public static void main(String[] args) {
+       try {
+           CalculatorInterface calculator = (CalculatorInterface) Naming.lookup("rmi://localhost:1099/CalculatorService");
+           int a = 10;
+           int b = 5;
+           int sum = calculator.add(a, b);
+           int difference = calculator.subtract(a, b);
+           int product = calculator.multiply(a, b);
+           double division = calculator.divide(a, b);
+           System.out.println("Sum: " + sum);
+           System.out.println("Difference: " + difference);
+           System.out.println("Product: " + product);
+           System.out.println("Division: " + division);
+       } catch (RemoteException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
+}
+
+Server.java
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+
+class CalculatorServer {
+   public static void main(String[] args) {
+       try {
+           Calculator calculator = new Calculator();
+           LocateRegistry.createRegistry(1099);
+           Naming.rebind("CalculatorService", calculator);
+           System.out.println("Calculator service is running...");
+       } catch (RemoteException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
+}
+
+
+
+3. A bookshop maintains the inventory of books that are being sold at the shop. The list  includes details such as author, title and publisher and stock position. Whenever a customer  wants the book, the sales person inputs the title and author and the system searches the list and  displays whether it is available or not. If it is not, an appropriate message is displayed, if it is,  then the system displays the book details and requests for the number of copies require. If the  requested are available, the total cost of the required copies is displayed: otherwise the  message "Required copies not in stock" is displayed
+Interface.java
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.io.Serializable;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.List;
+
+interface BookshopInterface extends Remote {
+   Book searchBook(String title, String author) throws RemoteException;
+   boolean checkAvailability(String title, String author, int requiredCopies) throws RemoteException;
+}
+
+class Book implements Serializable {
+   private String title;
+   private String author;
+   private String publisher;
+   private int stockPosition;
+   public Book(String title, String author, String publisher, int stockPosition) {
+       this.title = title;
+       this.author = author;
+       this.publisher = publisher;
+       this.stockPosition = stockPosition;
+   }
+   public String getTitle() {
+       return title;
+   }
+   public String getAuthor() {
+       return author;
+   }
+   public String getPublisher() {
+       return publisher;
+   }
+   public int getStockPosition() {
+       return stockPosition;
+   }
+}
+
+class Bookshop extends UnicastRemoteObject implements BookshopInterface {
+   private final List<Book> inventory;
+   public Bookshop() throws RemoteException {
+       inventory = new ArrayList<>();
+       inventory.add(new Book("Book 1", "Author 1", "Publisher 1", 5));
+       inventory.add(new Book("Book 2", "Author 2", "Publisher 2", 3));
+       inventory.add(new Book("Book 3", "Author 3", "Publisher 3", 10));
+   }
+   @Override
+   public Book searchBook(String title, String author) throws RemoteException {
+       for (Book book : inventory) {
+           if (book.getTitle().equals(title) && book.getAuthor().equals(author)) {
+               return book;
+           }
+       }
+       return null;
+   }
+   @Override
+   public boolean checkAvailability(String title, String author, int requiredCopies) throws RemoteException {
+       Book book = searchBook(title, author);
+       return book != null && book.getStockPosition() >= requiredCopies;
+   }
+}
+
+Server.java
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+
+class BookshopServer {
+   public static void main(String[] args) {
+       try {
+           Bookshop bookshop = new Bookshop();
+           LocateRegistry.createRegistry(1099);
+           Naming.rebind("BookshopService", bookshop);
+           System.out.println("Bookshop service is running...");
+       } catch (RemoteException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
+}
+
+Client.java
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.util.Scanner;
+
+class BookshopClient {
+   public static void main(String[] args) {
+       try {
+           BookshopInterface bookshop = (BookshopInterface) Naming.lookup("rmi://localhost:1099/BookshopService");
+           Scanner scanner = new Scanner(System.in);
+           System.out.print("Enter the book title: ");
+           String title = scanner.nextLine();
+           System.out.print("Enter the book author: ");
+           String author = scanner.nextLine();
+           System.out.print("Enter the number of copies required: ");
+           int requiredCopies = scanner.nextInt();
+           Book book = bookshop.searchBook(title, author);
+           if (book != null) {
+               System.out.println("Book found!");
+               System.out.println("Book details:");
+               System.out.println("Title: " + book.getTitle());
+               System.out.println("Author: " + book.getAuthor());
+               System.out.println("Publisher: " + book.getPublisher());
+               System.out.println("Stock Position: " + book.getStockPosition());
+               boolean available = bookshop.checkAvailability(title, author, requiredCopies);
+               if (available) {
+                   int totalCost = requiredCopies * 10;  // Assuming each book costs $10
+                   System.out.println("The required copies are available. Total cost: $" + totalCost);
+               } else {
+                   System.out.println("Required copies not in stock.");
+               }
+           } else {
+               System.out.println("Book not found.");
+           }
+       } catch (RemoteException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
+}
